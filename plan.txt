@@ -1,0 +1,42 @@
+emoji-encoder/                    ← Root (GitHub repo root)
+│
+├── 📁 emoji_encoder/             ← Python Package (main code)
+│   ├── __init__.py               ← Makes it a Python package
+│   ├── codec.py                  ← Core encoding/decoding logic
+│   └── utils.py                  ← Helper functions
+│
+├── 📁 cli/                       ← Command Line Interface
+│   ├── __init__.py
+│   └── main.py                   ← CLI entry point
+│
+├── 📁 web/                       ← Web Application
+│   ├── __init__.py
+│   ├── app.py                    ← Flask/FastAPI app
+│   ├── routes.py                 ← URL routes
+│   └── static/                   ← CSS, JS, images
+│       ├── css/
+│       ├── js/
+│       └── img/
+│
+├── 📁 templates/                 ← HTML templates (Jinja2)
+│   ├── base.html
+│   ├── index.html
+│   └── error.html
+│
+├── 📁 tests/                     ← Test files
+│   ├── __init__.py
+│   ├── test_codec.py
+│   └── test_cli.py
+│
+├── 📁 docs/                      ← Documentation
+│   └── README.md
+│
+├── 📁 scripts/                   ← Utility scripts
+│   └── setup.sh
+│
+├── .gitignore                    ← Git ignore rules
+├── LICENSE                       ← MIT License
+├── README.md                     ← Main documentation
+├── requirements.txt              ← Python dependencies
+├── setup.py                      ← Package installer
+└── pyproject.toml               ← Modern Python config
