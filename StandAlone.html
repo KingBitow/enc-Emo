@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hide a message in an emoji</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #e91e63 0%, #f48fb1 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 20px;
+            padding-top: 40px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 500px;
+            padding: 30px 25px;
+            position: relative;
+            perspective: 1000px;
+        }
+
+        /* Language Selector */
+        .language-selector {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            cursor: pointer;
+            font-size: 24px;
+            padding: 5px;
+            border-radius: 50%;
+            transition: background 0.2s;
+            z-index: 10;
+        }
+
+        .language-selector:hover {
+            background: #f0f0f0;
+        }
+
+        .language-dropdown {
+            position: absolute;
+            top: 45px;
+            right: 10px;
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: none;
+            overflow: hidden;
+            min-width: 150px;
+            z-index: 100;
+        }
+
+        .language-dropdown.show {
+            display: block;
+        }
+
+        .language-option {
+            padding: 12px 15px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: background 0.2s;
+            font-size: 14px;
+        }
+
+        .language-option:hover {
+            background: #f5f5f5;
+        }
+
+        .language-option.active {
+            background: #fce4ec;
+            color: #e91e63;
+            font-weight: 600;
+        }
+
+        .lang-flag {
+            font-size: 18px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 15px;
+            font-weight: 600;
+            padding-right: 40px;
+        }
+
+        .description {
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 25px;
+            padding: 0 10px;
+        }
+
+        /* Toggle Switch */
+        .mode-toggle {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 25px;
+        }
+
+        .mode-label {
+            font-size: 14px;
+            color: #666;
+            font-weight: 500;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+
+        .mode-label.active {
+            color: #333;
+            font-weight: 600;
+        }
+
+        .switch {
+            position: relative;
+            width: 50px;
+            height: 26px;
+            background: #ddd;
+            border-radius: 13px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .switch.on {
+            background: #4CAF50;
+        }
+
+        .switch-handle {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .switch.on .switch-handle {
+            transform: translateX(24px);
+        }
+
+        /* Flip Container - BIG for secret message */
+        .flip-container {
+            position: relative;
+            width: 100%;
+            height: 200px;  /* BIGGER - for secret message */
+            margin-bottom: 20px;
+            transform-style: preserve-3d;
+            transition: transform 0.6s;
+        }
+
+        .flip-container.flipped {
+            transform: rotateX(180deg);
+        }
+
+        .flip-front, .flip-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 10px;
+        }
+
+        /* Front - Input (BIG) */
+        .flip-front {
+            z-index: 2;
+            transform: rotateX(0deg);
+        }
+
+        .input-section textarea {
+            width: 100%;
+            height: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 15px;
+            resize: vertical;
+            font-family: inherit;
+            transition: border-color 0.3s, animation 0.5s;
+        }
+
+        .input-section textarea:focus {
+            outline: none;
+            border-color: #e91e63;
+        }
+
+        .input-section textarea.shake {
+            animation: shake 0.5s;
+            border-color: #f44336;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+
+        .input-label {
+            display: block;
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        /* Back - Clipboard (SAME BIG SIZE) */
+        .flip-back {
+            transform: rotateX(180deg);
+            background: #f5f5f5;
+            border: 3px dashed #ccc;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            overflow: visible;
+        }
+
+        .flip-back:hover {
+            background: #eeeeee;
+            border-color: #999;
+        }
+
+        .flip-back.copied {
+            background: #c8e6c9;
+            border-color: #4caf50;
+            border-style: solid;
+        }
+
+        .clipboard-icon {
+            font-size: 40px;
+            margin-bottom: 8px;
+        }
+
+        .clipboard-text {
+            font-size: 18px;
+            font-weight: 600;
+            color: #666;
+        }
+
+        .clipboard-text.copied {
+            color: #2e7d32;
+        }
+
+        .clipboard-hint {
+            font-size: 13px;
+            color: #999;
+            margin-top: 5px;
+        }
+
+        /* Fireworks Canvas */
+        #fireworks-canvas {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px;
+            height: 300px;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        /* Action Button */
+        .action-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #e91e63 0%, #f48fb1 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(233, 30, 99, 0.4);
+        }
+
+        .action-btn:active {
+            transform: translateY(0);
+        }
+
+        .action-btn.clipboard-mode {
+            background: linear-gradient(135deg, #666 0%, #999 100%);
+        }
+
+        .action-btn.clipboard-mode.active {
+            background: linear-gradient(135deg, #4caf50 0%, #81c784 100%);
+        }
+
+        /* Decode Input Section - SMALL like YouTube box */
+        .decode-input-section {
+            display: none;
+            margin-bottom: 20px;
+        }
+
+        .decode-mode .decode-input-section {
+            display: block;
+        }
+
+        .decode-input-section textarea {
+            width: 100%;
+            height: 60px;  /* SMALL - like YouTube tutorial box */
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 28px;
+            resize: none;
+            font-family: inherit;
+            text-align: center;
+            line-height: 30px;
+        }
+
+        .decode-input-section textarea:focus {
+            outline: none;
+            border-color: #e91e63;
+        }
+
+        /* Decode Output - BIGGER */
+        .decode-output-section {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .decode-mode .decode-output-section.show {
+            display: block;
+        }
+
+        .decode-output-box {
+            width: 100%;
+            min-height: 80px;  /* BIGGER */
+            padding: 15px;
+            background: #e8f5e9;
+            border: 1px solid #a5d6a7;
+            border-radius: 10px;
+            font-size: 16px;
+            word-wrap: break-word;
+            position: relative;
+        }
+
+        .decode-output-label {
+            font-size: 12px;
+            color: #2e7d32;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .decode-output-content {
+            font-size: 16px;
+            color: #333;
+            line-height: 1.5;
+            margin-bottom: 10px;
+        }
+
+        .decode-copy-btn {
+            padding: 8px 16px;
+            background: #333;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .decode-copy-btn:hover {
+            background: #555;
+        }
+
+        .decode-copy-btn.copied {
+            background: #4CAF50;
+        }
+
+        /* Emoji Picker */
+        .picker-section {
+            margin-bottom: 20px;
+        }
+
+        .picker-title {
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .emoji-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .emoji-btn {
+            aspect-ratio: 1;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 8px;
+            font-size: 22px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
+
+        .emoji-btn:hover {
+            border-color: #e91e63;
+            transform: scale(1.1);
+        }
+
+        .emoji-btn.selected {
+            border-color: #e91e63;
+            background: #fce4ec;
+            box-shadow: 0 2px 8px rgba(233, 30, 99, 0.3);
+        }
+
+        .emoji-btn.ready {
+            border-color: #4caf50;
+            background: #c8e6c9;
+            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        /* Alphabet Grid */
+        .alphabet-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 6px;
+        }
+
+        .letter-btn {
+            aspect-ratio: 1;
+            border: 1px solid #e0e0e0;
+            background: white;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #555;
+            font-weight: 500;
+        }
+
+        .letter-btn:hover {
+            border-color: #e91e63;
+            background: #fce4ec;
+        }
+
+        .letter-btn.selected {
+            border-color: #e91e63;
+            background: #e91e63;
+            color: white;
+        }
+
+        .letter-btn.ready {
+            border-color: #4caf50;
+            background: #4caf50;
+            color: white;
+            animation: pulse 2s infinite;
+        }
+
+        /* Selected Display */
+        .selected-display {
+            text-align: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 2px solid #e0e0e0;
+            transition: all 0.3s;
+        }
+
+        .selected-display.has-selection {
+            border-color: #e91e63;
+            background: #fce4ec;
+        }
+
+        .selected-display.ready {
+            border-color: #4caf50;
+            background: #c8e6c9;
+        }
+
+        .selected-label {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 5px;
+            transition: color 0.3s;
+        }
+
+        .selected-display.ready .selected-label {
+            color: #2e7d32;
+            font-weight: 600;
+        }
+
+        .selected-emoji {
+            font-size: 48px;
+            line-height: 1;
+            transition: transform 0.3s;
+        }
+
+        .selected-display.ready .selected-emoji {
+            transform: scale(1.1);
+        }
+
+        /* Error/Success Messages */
+        .message {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 13px;
+            display: none;
+        }
+
+        .message.show {
+            display: block;
+        }
+
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            border: 1px solid #ef9a9a;
+        }
+
+        .success {
+            background: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #a5d6a7;
+        }
+
+        /* YouTube Link */
+        .youtube-link {
+            text-align: center;
+            margin: 20px 0;
+            padding: 15px;
+            background: #fce4ec;
+            border-radius: 10px;
+            border: 1px solid #f8bbd9;
+        }
+
+        .youtube-link a {
+            color: #e91e63;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .youtube-link a:hover {
+            text-decoration: underline;
+        }
+
+        .youtube-icon {
+            font-size: 18px;
+        }
+
+        /* GitHub Link */
+        .github-link {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+
+        .github-link a {
+            color: #666;
+            text-decoration: none;
+            font-size: 13px;
+            transition: color 0.2s;
+        }
+
+        .github-link a:hover {
+            color: #e91e63;
+        }
+
+        /* Decode Mode Styles */
+        .decode-mode .emoji-grid,
+        .decode-mode .alphabet-grid,
+        .decode-mode .selected-display,
+        .decode-mode .flip-container {
+            display: none;
+        }
+
+        .decode-mode .picker-section {
+            display: none;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+                padding-top: 20px;
+            }
+
+            .container {
+                padding: 20px 15px;
+                border-radius: 12px;
+            }
+
+            h1 {
+                font-size: 20px;
+                padding-right: 40px;
+            }
+
+            .description {
+                font-size: 13px;
+            }
+
+            .flip-container {
+                height: 180px;
+            }
+
+            .decode-input-section textarea {
+                height: 50px;
+                font-size: 24px;
+            }
+
+            .emoji-grid {
+                grid-template-columns: repeat(6, 1fr);
+                gap: 6px;
+            }
+
+            .emoji-btn {
+                font-size: 20px;
+            }
+
+            .alphabet-grid {
+                grid-template-columns: repeat(5, 1fr);
+            }
+
+            .letter-btn {
+                font-size: 14px;
+            }
+
+            .language-selector {
+                top: 10px;
+                right: 10px;
+                font-size: 22px;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .emoji-grid {
+                grid-template-columns: repeat(5, 1fr);
+            }
+
+            .emoji-btn {
+                font-size: 18px;
+            }
+        }
+    </style>
+<base target="_blank">
+</head>
+<body>
+    <div class="container" id="app">
+        <!-- Language Selector -->
+        <div class="language-selector" id="lang-selector" title="Change Language">
+            🇺🇸
+        </div>
+        <div class="language-dropdown" id="lang-dropdown">
+            <div class="language-option active" data-lang="en">
+                <span class="lang-flag">🇺🇸</span>
+                <span>English</span>
+            </div>
+            <div class="language-option" data-lang="de">
+                <span class="lang-flag">🇩🇪</span>
+                <span>Deutsch</span>
+            </div>
+            <div class="language-option" data-lang="ti">
+                <span class="lang-flag">🇪🇷</span>
+                <span>ትግርኛ</span>
+            </div>
+        </div>
+
+        <h1 id="title">Hide a message in an emoji</h1>
+        <p class="description" id="description">
+            This tool allows you to encode a hidden message into an emoji or alphabet letter. 
+            You can copy and paste text with a hidden message in it to decode the message.
+        </p>
+
+        <!-- Mode Toggle -->
+        <div class="mode-toggle">
+            <span class="mode-label active" id="decode-label">Decode</span>
+            <div class="switch" id="mode-switch">
+                <div class="switch-handle"></div>
+            </div>
+            <span class="mode-label" id="encode-label">Encode</span>
+        </div>
+
+        <!-- Messages -->
+        <div class="message error" id="error-msg"></div>
+        <div class="message success" id="success-msg"></div>
+
+        <!-- Decode Input Section - SMALL like YouTube box -->
+        <div class="decode-input-section">
+            <label class="input-label" id="decode-input-label">Paste an emoji to decode</label>
+            <textarea id="decode-input" placeholder=""></textarea>
+        </div>
+
+        <!-- Flip Container (Encode Mode Only) - BIG -->
+        <div class="flip-container" id="flip-container">
+            <div class="flip-front">
+                <label class="input-label" id="input-label">Enter your secret message</label>
+                <textarea id="input-text" placeholder="Type your secret message here..."></textarea>
+            </div>
+            <div class="flip-back" id="clipboard-box">
+                <canvas id="fireworks-canvas"></canvas>
+                <div class="clipboard-icon">📋</div>
+                <div class="clipboard-text" id="clipboard-text">Click to Copy Emoji</div>
+                <div class="clipboard-hint" id="clipboard-hint">Ready to paste anywhere!</div>
+            </div>
+        </div>
+
+        <!-- Action Button -->
+        <button class="action-btn" id="action-btn">Decode Message</button>
+
+        <!-- Decode Output Section - BIGGER -->
+        <div class="decode-output-section" id="decode-output-section">
+            <div class="decode-output-box">
+                <div class="decode-output-label" id="decode-output-label">Decoded Message</div>
+                <div class="decode-output-content" id="decode-output-content"></div>
+                <button class="decode-copy-btn" id="decode-copy-btn">Copy to Clipboard</button>
+            </div>
+        </div>
+
+        <!-- Selected Display (Encode Mode Only) -->
+        <div class="selected-display" id="selected-display">
+            <div class="selected-label" id="selected-label">Selected carrier</div>
+            <div class="selected-emoji" id="selected-emoji">😊</div>
+        </div>
+
+        <!-- Emoji Picker -->
+        <div class="picker-section" id="emoji-picker">
+            <div class="picker-title" id="emoji-title">Pick an emoji</div>
+            <div class="emoji-grid" id="emoji-grid"></div>
+        </div>
+
+        <!-- Alphabet Picker -->
+        <div class="picker-section" id="letter-picker">
+            <div class="picker-title" id="letter-title">Or pick a standard alphabet letter</div>
+            <div class="alphabet-grid" id="alphabet-grid"></div>
+        </div>
+
+        <!-- YouTube Link -->
+        <div class="youtube-link" id="youtube-section">
+            <a href="https://www.youtube.com/watch?v=YOUR_VIDEO_ID" target="_blank" id="youtube-link">
+                <span class="youtube-icon">▶️</span>
+                <span id="youtube-text">How does this work? Watch tutorial</span>
+            </a>
+        </div>
+
+        <!-- GitHub Link -->
+        <div class="github-link">
+            <a href="https://github.com/KingBitow/enc-Emo" target="_blank" id="github-text">Source on GitHub</a>
+        </div>
+    </div>
+
+    <script>
+        // Translations
+        const translations = {
+            en: {
+                title: "Hide a message in an emoji",
+                description: "This tool allows you to encode a hidden message into an emoji or alphabet letter. You can copy and paste text with a hidden message in it to decode the message.",
+                decode: "Decode",
+                encode: "Encode",
+                decodeLabel: "Paste an emoji to decode",
+                encodeLabel: "Enter your secret message",
+                encodePlaceholder: "Type your secret message here...",
+                decodeBtn: "Decode Message",
+                encodeBtn: "Encode Message",
+                clipboardBtn: "Clipboard",
+                clipboardText: "Click to Copy Emoji",
+                clipboardHint: "Ready to paste anywhere!",
+                clipboardCopied: "Copied! ✅",
+                selectedLabel: "Selected carrier",
+                selectedReady: "Ready to send! ✅",
+                emojiTitle: "Pick an emoji",
+                letterTitle: "Or pick a standard alphabet letter",
+                outputLabel: "Decoded Message",
+                successDecode: "Decoded successfully!",
+                errorEmpty: "Please enter some text first!",
+                errorNoMessage: "No hidden message found",
+                copyBtn: "Copy to Clipboard",
+                copied: "Copied!",
+                youtubeText: "How does this work? Watch tutorial",
+                githubText: "Source on GitHub"
+            },
+            de: {
+                title: "Verstecke eine Nachricht in einem Emoji",
+                description: "Dieses Tool ermöglicht es dir, eine versteckte Nachricht in ein Emoji oder einen Buchstaben zu kodieren. Du kannst Text mit einer versteckten Nachricht kopieren und einfügen, um sie zu dekodieren.",
+                decode: "Dekodieren",
+                encode: "Kodieren",
+                decodeLabel: "Emoji zum Dekodieren einfügen",
+                encodeLabel: "Gib deine geheime Nachricht ein",
+                encodePlaceholder: "Gib hier deine geheime Nachricht ein...",
+                decodeBtn: "Nachricht Dekodieren",
+                encodeBtn: "Nachricht Kodieren",
+                clipboardBtn: "Zwischenablage",
+                clipboardText: "Emoji Kopieren",
+                clipboardHint: "Bereit zum Einfügen!",
+                clipboardCopied: "Kopiert! ✅",
+                selectedLabel: "Ausgewählter Träger",
+                selectedReady: "Bereit zum Senden! ✅",
+                emojiTitle: "Wähle ein Emoji",
+                letterTitle: "Oder wähle einen Buchstaben",
+                outputLabel: "Dekodierte Nachricht",
+                successDecode: "Erfolgreich dekodiert!",
+                errorEmpty: "Bitte gib zuerst einen Text ein!",
+                errorNoMessage: "Keine versteckte Nachricht gefunden",
+                copyBtn: "In Zwischenablage kopieren",
+                copied: "Kopiert!",
+                youtubeText: "Wie funktioniert das? Tutorial ansehen",
+                githubText: "Quellcode auf GitHub"
+            },
+            ti: {
+                title: "መልእኽቲ ኣብ ኢሞጂ ደብቅ",
+                description: "እዚ መሳርሒ እዚ ኣብ ኢሞጂ ወይ ናይ ፊደል ፊደል ምስጢራዊ መልእኽቲ ንምእታው ይፍቅድ። ምስ ምስጢራዊ መልእኽቲ ዝርከቦ ጽሑፍ ንምቕዳሕ ክትቅድሖን ክትሰቅሎን ትኽእል።",
+                decode: "ኣቃድም",
+                encode: "ኣስሪሕ",
+                decodeLabel: "ንምቕዳሕ ኢሞጂ ኣድግም",
+                encodeLabel: "ምስጢራዊ መልእኽትካ ኣእትው",
+                encodePlaceholder: "ኣብዚ ምስጢራዊ መልእኽትካ ኣእትው...",
+                decodeBtn: "መልእኽቲ ኣቃድም",
+                encodeBtn: "መልእኽቲ ኣስሪሕ",
+                clipboardBtn: "ብሎት ወረቐት",
+                clipboardText: "ኢሞጂ ኣቐምጥ",
+                clipboardHint: "ንምትእኽኻዝ ድሉዋት!",
+                clipboardCopied: "ተቐዲሑ! ✅",
+                selectedLabel: "ዝተመርጸ መጋበርያ",
+                selectedReady: "ንምልኣኽ ድሉዋት! ✅",
+                emojiTitle: "ኢሞጂ ምረጽ",
+                letterTitle: "ወይ ድማ ፊደል ምረጽ",
+                outputLabel: "ዝተቐደሐ መልእኽቲ",
+                successDecode: "ብተወሳኺ ተቐዲሑ!",
+                errorEmpty: "በጃኻ መጀመርታ ጽሑፍ ኣእትው!",
+                errorNoMessage: "ምስጢራዊ መልእኽቲ ኣይተረኸበን",
+                copyBtn: "ናብ ብሎት ወረቐት ኣቐምጥ",
+                copied: "ተቐዲሑ!",
+                youtubeText: "ከመይ ጌሩ ይሰርሕ? ትምህርቲ ተዓዘብ",
+                githubText: "ኣብ GitHub ምንጪ ኮድ"
+            }
+        };
+
+        // State
+        let mode = 'decode';
+        let selectedCarrier = '😊';
+        let currentLang = 'en';
+        let isEncoded = false;
+        let encodedEmoji = '';
+
+        // Emoji set
+        const emojis = ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', 
+                       '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰',
+                       '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜'];
+
+        // DOM Elements
+        const app = document.getElementById('app');
+        const langSelector = document.getElementById('lang-selector');
+        const langDropdown = document.getElementById('lang-dropdown');
+        const modeSwitch = document.getElementById('mode-switch');
+        const decodeLabel = document.getElementById('decode-label');
+        const encodeLabel = document.getElementById('encode-label');
+        const flipContainer = document.getElementById('flip-container');
+        const inputText = document.getElementById('input-text');
+        const clipboardBox = document.getElementById('clipboard-box');
+        const clipboardText = document.getElementById('clipboard-text');
+        const clipboardHint = document.getElementById('clipboard-hint');
+        const actionBtn = document.getElementById('action-btn');
+        const selectedDisplay = document.getElementById('selected-display');
+        const selectedLabel = document.getElementById('selected-label');
+        const selectedEmoji = document.getElementById('selected-emoji');
+        const emojiGrid = document.getElementById('emoji-grid');
+        const alphabetGrid = document.getElementById('alphabet-grid');
+        const errorMsg = document.getElementById('error-msg');
+        const successMsg = document.getElementById('success-msg');
+        const decodeInput = document.getElementById('decode-input');
+        const decodeOutputSection = document.getElementById('decode-output-section');
+        const decodeOutputContent = document.getElementById('decode-output-content');
+        const decodeCopyBtn = document.getElementById('decode-copy-btn');
+
+        // Initialize
+        function init() {
+            renderEmojiGrid();
+            renderAlphabetGrid();
+            updateMode();
+            setupInputListener();
+        }
+
+        // Setup input listener for button text change
+        function setupInputListener() {
+            inputText.addEventListener('input', () => {
+                if (mode === 'encode') {
+                    updateButtonState();
+                }
+            });
+        }
+
+        function updateButtonState() {
+            const t = translations[currentLang];
+            const hasText = inputText.value.trim().length > 0;
+
+            if (hasText && !isEncoded) {
+                actionBtn.textContent = t.encodeBtn;
+                actionBtn.classList.remove('clipboard-mode');
+            } else if (isEncoded) {
+                actionBtn.textContent = t.clipboardBtn;
+                actionBtn.classList.add('clipboard-mode');
+            }
+        }
+
+        // Language Switcher
+        langSelector.addEventListener('click', (e) => {
+            e.stopPropagation();
+            langDropdown.classList.toggle('show');
+        });
+
+        document.addEventListener('click', () => {
+            langDropdown.classList.remove('show');
+        });
+
+        document.querySelectorAll('.language-option').forEach(option => {
+            option.addEventListener('click', () => {
+                const lang = option.dataset.lang;
+                setLanguage(lang);
+                document.querySelectorAll('.language-option').forEach(o => o.classList.remove('active'));
+                option.classList.add('active');
+                langDropdown.classList.remove('show');
+            });
+        });
+
+        function setLanguage(lang) {
+            currentLang = lang;
+            const t = translations[lang];
+            const flags = { en: '🇺🇸', de: '🇩🇪', ti: '🇪🇷' };
+            langSelector.textContent = flags[lang];
+
+            document.getElementById('title').textContent = t.title;
+            document.getElementById('description').textContent = t.description;
+            decodeLabel.textContent = t.decode;
+            encodeLabel.textContent = t.encode;
+            document.getElementById('decode-input-label').textContent = t.decodeLabel;
+            document.getElementById('input-label').textContent = t.encodeLabel;
+            inputText.placeholder = t.encodePlaceholder;
+            selectedLabel.textContent = t.selectedLabel;
+            document.getElementById('emoji-title').textContent = t.emojiTitle;
+            document.getElementById('letter-title').textContent = t.letterTitle;
+            document.getElementById('youtube-text').textContent = t.youtubeText;
+            document.getElementById('github-text').textContent = t.githubText;
+            clipboardText.textContent = t.clipboardText;
+            clipboardHint.textContent = t.clipboardHint;
+            document.getElementById('decode-output-label').textContent = t.outputLabel;
+            decodeCopyBtn.textContent = t.copyBtn;
+
+            updateButtonState();
+        }
+
+        // Render Emoji Grid
+        function renderEmojiGrid() {
+            emojiGrid.innerHTML = emojis.map(emoji => 
+                `<button class="emoji-btn ${emoji === selectedCarrier ? 'selected' : ''}" data-emoji="${emoji}">${emoji}</button>`
+            ).join('');
+
+            emojiGrid.querySelectorAll('.emoji-btn').forEach(btn => {
+                btn.addEventListener('click', () => selectCarrier(btn.dataset.emoji));
+            });
+        }
+
+        // Render Alphabet Grid
+        function renderAlphabetGrid() {
+            const letters = 'abcdefghijklmnopqrstuvwxyz';
+            alphabetGrid.innerHTML = letters.split('').map(letter => 
+                `<button class="letter-btn ${letter === selectedCarrier ? 'selected' : ''}" data-letter="${letter}">${letter}</button>`
+            ).join('');
+
+            alphabetGrid.querySelectorAll('.letter-btn').forEach(btn => {
+                btn.addEventListener('click', () => selectCarrier(btn.dataset.letter));
+            });
+        }
+
+        function selectCarrier(carrier) {
+            selectedCarrier = carrier;
+            selectedEmoji.textContent = carrier;
+            selectedDisplay.classList.add('has-selection');
+
+            document.querySelectorAll('.emoji-btn, .letter-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+
+            const btn = document.querySelector(`[data-emoji="${carrier}"], [data-letter="${carrier}"]`);
+            if (btn) btn.classList.add('selected');
+        }
+
+        // Toggle Mode
+        modeSwitch.addEventListener('click', () => {
+            mode = mode === 'decode' ? 'encode' : 'decode';
+            modeSwitch.classList.toggle('on');
+            updateMode();
+            resetEncodeState();
+            decodeOutputSection.classList.remove('show');
+            decodeInput.value = '';
+        });
+
+        function updateMode() {
+            const t = translations[currentLang];
+
+            if (mode === 'encode') {
+                app.classList.remove('decode-mode');
+                decodeLabel.classList.remove('active');
+                encodeLabel.classList.add('active');
+                updateButtonState();
+            } else {
+                app.classList.add('decode-mode');
+                decodeLabel.classList.add('active');
+                encodeLabel.classList.remove('active');
+                actionBtn.textContent = t.decodeBtn;
+                actionBtn.classList.remove('clipboard-mode');
+            }
+        }
+
+        function resetEncodeState() {
+            isEncoded = false;
+            encodedEmoji = '';
+            flipContainer.classList.remove('flipped');
+            clipboardBox.classList.remove('copied');
+            clipboardText.classList.remove('copied');
+            selectedDisplay.classList.remove('ready');
+            document.querySelectorAll('.emoji-btn, .letter-btn').forEach(btn => {
+                btn.classList.remove('ready');
+            });
+            updateButtonState();
+        }
+
+        function showError(msg) {
+            errorMsg.textContent = msg;
+            errorMsg.classList.add('show');
+            successMsg.classList.remove('show');
+
+            if (mode === 'encode') {
+                inputText.classList.add('shake');
+                setTimeout(() => inputText.classList.remove('shake'), 500);
+            }
+        }
+
+        function showSuccess(msg) {
+            successMsg.textContent = msg;
+            successMsg.classList.add('show');
+            errorMsg.classList.remove('show');
+        }
+
+        function clearMessages() {
+            errorMsg.classList.remove('show');
+            successMsg.classList.remove('show');
+        }
+
+        // Encoding/Decoding functions
+        function encodeText(baseEmoji, text) {
+            const encoder = new TextEncoder();
+            const bytes = encoder.encode(text);
+            let result = baseEmoji;
+
+            for (const byte of bytes) {
+                if (byte < 16) {
+                    result += String.fromCodePoint(0xFE00 + byte);
+                } else {
+                    result += String.fromCodePoint(0xE0100 + (byte - 16));
+                }
+            }
+            return result;
+        }
+
+        function decodeText(encodedStr) {
+            const bytes = [];
+
+            for (const char of encodedStr) {
+                const code = char.codePointAt(0);
+                if (code >= 0xFE00 && code <= 0xFE0F) {
+                    bytes.push(code - 0xFE00);
+                } else if (code >= 0xE0100 && code <= 0xE01EF) {
+                    bytes.push(code - 0xE0100 + 16);
+                }
+            }
+
+            if (bytes.length === 0) {
+                throw new Error('No hidden message found');
+            }
+
+            const decoder = new TextDecoder();
+            return decoder.decode(new Uint8Array(bytes));
+        }
+
+        // Action Button Click
+        actionBtn.addEventListener('click', () => {
+            clearMessages();
+            const t = translations[currentLang];
+
+            if (mode === 'decode') {
+                const text = decodeInput.value.trim();
+                if (!text) {
+                    showError(t.errorEmpty);
+                    return;
+                }
+                try {
+                    const decoded = decodeText(text);
+                    decodeOutputContent.textContent = decoded;
+                    decodeOutputSection.classList.add('show');
+                    showSuccess(t.successDecode);
+                } catch (err) {
+                    showError(t.errorNoMessage);
+                    decodeOutputSection.classList.remove('show');
+                }
+            } else {
+                // Encode mode
+                if (!isEncoded) {
+                    const text = inputText.value.trim();
+                    if (!text) {
+                        showError(t.errorEmpty);
+                        return;
+                    }
+
+                    encodedEmoji = encodeText(selectedCarrier, text);
+                    isEncoded = true;
+
+                    flipContainer.classList.add('flipped');
+
+                    actionBtn.textContent = t.clipboardBtn;
+                    actionBtn.classList.add('clipboard-mode');
+
+                    selectedDisplay.classList.add('ready');
+                    selectedLabel.textContent = t.selectedReady;
+
+                    document.querySelectorAll('.emoji-btn.selected, .letter-btn.selected').forEach(btn => {
+                        btn.classList.add('ready');
+                    });
+                } else {
+                    copyToClipboard();
+                }
+            }
+        });
+
+        // Decode copy button
+        decodeCopyBtn.addEventListener('click', () => {
+            const t = translations[currentLang];
+            const text = decodeOutputContent.textContent;
+
+            navigator.clipboard.writeText(text).then(() => {
+                decodeCopyBtn.textContent = t.copied;
+                decodeCopyBtn.classList.add('copied');
+
+                setTimeout(() => {
+                    decodeCopyBtn.textContent = t.copyBtn;
+                    decodeCopyBtn.classList.remove('copied');
+                }, 2000);
+            });
+        });
+
+        // Clipboard box click
+        clipboardBox.addEventListener('click', () => {
+            if (isEncoded) {
+                copyToClipboard();
+            }
+        });
+
+        function copyToClipboard() {
+            const t = translations[currentLang];
+
+            navigator.clipboard.writeText(encodedEmoji).then(() => {
+                clipboardBox.classList.add('copied');
+                clipboardText.textContent = t.clipboardCopied;
+                clipboardText.classList.add('copied');
+                actionBtn.classList.add('active');
+
+                launchFireworks();
+
+                setTimeout(() => {
+                    clipboardBox.classList.remove('copied');
+                    clipboardText.textContent = t.clipboardText;
+                    clipboardText.classList.remove('copied');
+                    actionBtn.classList.remove('active');
+                }, 2000);
+            });
+        }
+
+        // Fireworks Animation
+        function launchFireworks() {
+            const canvas = document.getElementById('fireworks-canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = 300;
+            canvas.height = 300;
+
+            const particles = [];
+            const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#ffa500'];
+
+            for (let i = 0; i < 50; i++) {
+                particles.push({
+                    x: canvas.width / 2,
+                    y: canvas.height / 2,
+                    vx: (Math.random() - 0.5) * 10,
+                    vy: (Math.random() - 0.5) * 10,
+                    life: 1,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    size: Math.random() * 4 + 2
+                });
+            }
+
+            let animationId;
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                particles.forEach((p, index) => {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.vy += 0.2;
+                    p.life -= 0.02;
+                    p.size *= 0.98;
+
+                    if (p.life > 0) {
+                        ctx.globalAlpha = p.life;
+                        ctx.fillStyle = p.color;
+                        ctx.beginPath();
+                        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                });
+
+                if (particles.some(p => p.life > 0)) {
+                    animationId = requestAnimationFrame(animate);
+                } else {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
+            }
+
+            animate();
+
+            setTimeout(() => {
+                cancelAnimationFrame(animationId);
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }, 1500);
+        }
+
+        init();
+    </script>
+</body>
+</html>
