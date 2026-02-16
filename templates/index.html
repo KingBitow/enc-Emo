@@ -1,1 +1,413 @@
 
+
+# 4. Web interface (templates/index.html) - Beautiful, interactive UI
+html_template = '''<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emoji Encoder</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 800px;
+            padding: 40px;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        
+        .mode-switcher {
+            display: flex;
+            background: #f0f0f0;
+            border-radius: 10px;
+            padding: 5px;
+            margin-bottom: 30px;
+        }
+        
+        .mode-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            color: #666;
+            transition: all 0.3s;
+        }
+        
+        .mode-btn.active {
+            background: white;
+            color: #667eea;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .mode-btn:hover:not(.active) {
+            color: #333;
+        }
+        
+        .input-section, .output-section {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+        }
+        
+        textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            resize: vertical;
+            transition: border-color 0.3s;
+            font-family: inherit;
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+        
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+        
+        .output-box {
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 15px;
+            min-height: 120px;
+            word-wrap: break-word;
+            font-size: 18px;
+            line-height: 1.6;
+        }
+        
+        .placeholder {
+            color: #999;
+            font-style: italic;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .error {
+            color: #e74c3c;
+            margin-top: 10px;
+            padding: 10px;
+            background: #fdf2f2;
+            border-radius: 8px;
+            display: none;
+        }
+        
+        .success {
+            color: #27ae60;
+            margin-top: 10px;
+            padding: 10px;
+            background: #f2fdf5;
+            border-radius: 8px;
+            display: none;
+        }
+        
+        .emoji-preview {
+            font-size: 24px;
+            line-height: 1.8;
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 1.8em;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Emoji Encoder</h1>
+        <p class="subtitle">Encode any text as emoji, decode emoji back to text</p>
+        
+        <div class="mode-switcher">
+            <button class="mode-btn {% if mode == 'encode' %}active{% endif %}" onclick="setMode('encode')">
+                🔒 Encode
+            </button>
+            <button class="mode-btn {% if mode == 'decode' %}active{% endif %}" onclick="setMode('decode')">
+                🔓 Decode
+            </button>
+        </div>
+        
+        <div class="input-section">
+            <label id="input-label">Text to encode:</label>
+            <textarea id="input-text" placeholder="Enter your text here..."></textarea>
+        </div>
+        
+        <div class="button-group">
+            <button class="btn btn-primary" onclick="process()" id="action-btn">
+                Encode to Emoji
+            </button>
+            <button class="btn btn-secondary" onclick="clearAll()">
+                Clear
+            </button>
+        </div>
+        
+        <div class="error" id="error-msg"></div>
+        <div class="success" id="success-msg"></div>
+        
+        <div class="output-section" style="margin-top: 30px;">
+            <label>Result:</label>
+            <div class="output-box" id="output">
+                <span class="placeholder">Result will appear here...</span>
+            </div>
+            <div class="stats">
+                <span id="char-count">Characters: 0</span>
+                <span id="byte-size">Size: 0 bytes</span>
+            </div>
+        </div>
+        
+        <div class="button-group" style="margin-top: 10px;">
+            <button class="btn btn-secondary" onclick="copyResult()">
+                📋 Copy
+            </button>
+            <button class="btn btn-secondary" onclick="share()">
+                🔗 Share
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let currentMode = '{{ mode }}';
+        
+        function setMode(mode) {
+            currentMode = mode;
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Update labels
+            const inputLabel = document.getElementById('input-label');
+            const actionBtn = document.getElementById('action-btn');
+            const inputText = document.getElementById('input-text');
+            
+            if (mode === 'encode') {
+                inputLabel.textContent = 'Text to encode:';
+                actionBtn.textContent = 'Encode to Emoji';
+                inputText.placeholder = 'Enter your text here...';
+            } else {
+                inputLabel.textContent = 'Emoji to decode:';
+                actionBtn.textContent = 'Decode to Text';
+                inputText.placeholder = 'Paste emoji here...';
+            }
+            
+            // Update URL without reloading
+            const url = new URL(window.location);
+            url.searchParams.set('mode', mode);
+            window.history.pushState({}, '', url);
+            
+            clearAll();
+        }
+        
+        async function process() {
+            const input = document.getElementById('input-text').value;
+            const output = document.getElementById('output');
+            const errorMsg = document.getElementById('error-msg');
+            const successMsg = document.getElementById('success-msg');
+            
+            // Hide previous messages
+            errorMsg.style.display = 'none';
+            successMsg.style.display = 'none';
+            
+            if (!input.trim()) {
+                showError('Please enter some text');
+                return;
+            }
+            
+            try {
+                const endpoint = currentMode === 'encode' ? '/api/encode' : '/api/decode';
+                const bodyKey = currentMode === 'encode' ? 'text' : 'emoji';
+                
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ [bodyKey]: input })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    output.innerHTML = `<div class="emoji-preview">${escapeHtml(data.result)}</div>`;
+                    updateStats(data.result);
+                    showSuccess(currentMode === 'encode' ? 'Encoded successfully!' : 'Decoded successfully!');
+                } else {
+                    showError(data.error || 'Something went wrong');
+                }
+            } catch (err) {
+                showError('Network error. Is the server running?');
+            }
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function updateStats(text) {
+            document.getElementById('char-count').textContent = `Characters: ${text.length}`;
+            document.getElementById('byte-size').textContent = `Size: ${new Blob([text]).size} bytes`;
+        }
+        
+        function showError(msg) {
+            const errorMsg = document.getElementById('error-msg');
+            errorMsg.textContent = msg;
+            errorMsg.style.display = 'block';
+        }
+        
+        function showSuccess(msg) {
+            const successMsg = document.getElementById('success-msg');
+            successMsg.textContent = msg;
+            successMsg.style.display = 'block';
+        }
+        
+        function clearAll() {
+            document.getElementById('input-text').value = '';
+            document.getElementById('output').innerHTML = '<span class="placeholder">Result will appear here...</span>';
+            document.getElementById('char-count').textContent = 'Characters: 0';
+            document.getElementById('byte-size').textContent = 'Size: 0 bytes';
+            document.getElementById('error-msg').style.display = 'none';
+            document.getElementById('success-msg').style.display = 'none';
+        }
+        
+        function copyResult() {
+            const output = document.getElementById('output');
+            const text = output.textContent;
+            if (text && !text.includes('Result will appear')) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showSuccess('Copied to clipboard!');
+                });
+            }
+        }
+        
+        function share() {
+            const output = document.getElementById('output');
+            const text = output.textContent;
+            if (text && !text.includes('Result will appear')) {
+                const url = new URL(window.location);
+                url.searchParams.set('data', encodeURIComponent(text));
+                navigator.clipboard.writeText(url.toString()).then(() => {
+                    showSuccess('Share link copied!');
+                });
+            }
+        }
+        
+        // Check for shared data in URL
+        window.addEventListener('load', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const sharedData = urlParams.get('data');
+            if (sharedData) {
+                document.getElementById('input-text').value = decodeURIComponent(sharedData);
+                process();
+            }
+        });
+        
+        // Allow Ctrl+Enter to submit
+        document.getElementById('input-text').addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'Enter') {
+                process();
+            }
+        });
+    </script>
+</body>
+</html>
+'''
+
+with open(f"{project_root}/templates/index.html", "w") as f:
+    f.write(html_template)
+
+print("✅ Created templates/index.html")
