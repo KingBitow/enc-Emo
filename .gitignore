@@ -1,1 +1,33 @@
+# 8. .gitignore
+gitignore = '''__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+dist/
+*.egg-info/
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+'''
 
+with open(f"{project_root}/.gitignore", "w") as f:
+    f.write(gitignore)
+
+# List all created files
+import os
+print("\n📁 Project structure created:\n")
+for root, dirs, files in os.walk(project_root):
+    level = root.replace(project_root, '').count(os.sep)
+    indent = ' ' * 2 * level
+    print(f'{indent}{os.path.basename(root)}/')
+    subindent = ' ' * 2 * (level + 1)
+    for file in files:
+        print(f'{subindent}{file}')
